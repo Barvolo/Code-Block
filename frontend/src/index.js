@@ -1,11 +1,37 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
-import './index.css';  // Assuming you might have some global styles
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import '@fontsource/roboto';
+
+const theme = createTheme({
+    palette: {
+        primary: {
+            main: '#1976d2',
+        },
+        secondary: {
+            main: '#dc004e',
+        },
+        background: {
+            default: '#f5f5f5',
+        },
+    },
+    typography: {
+        fontFamily: 'Roboto, Arial, sans-serif',
+        h4: {
+            fontWeight: 600,
+        },
+        body1: {
+            fontSize: '1rem',
+        },
+    },
+});
 
 ReactDOM.render(
-    <React.StrictMode>
+    <ThemeProvider theme={theme}>
+        <CssBaseline />
         <App />
-    </React.StrictMode>,
+    </ThemeProvider>,
     document.getElementById('root')
 );

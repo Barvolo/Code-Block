@@ -1,4 +1,34 @@
 import React, { useEffect, useState } from 'react';
+import { Container, Typography, List, ListItemText, Paper, Box, ListItemButton } from '@mui/material';
+import { styled } from '@mui/system';
+
+const StyledContainer = styled(Container)({
+    marginTop: '50px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+});
+
+const StyledPaper = styled(Paper)({
+    padding: '20px',
+    backgroundColor: '#ffffff',
+    width: '100%',
+    maxWidth: '600px',
+    borderRadius: '8px',
+    boxShadow: '0 3px 5px rgba(0,0,0,0.2)',
+});
+
+const StyledList = styled(List)({
+    width: '100%',
+});
+
+const StyledListItemButton = styled(ListItemButton)({
+    marginBottom: '10px',
+    borderRadius: '4px',
+    '&:hover': {
+        backgroundColor: '#f0f0f0',
+    },
+});
 
 function Lobby() {
     const [codeBlocks, setCodeBlocks] = useState([]);
@@ -20,16 +50,22 @@ function Lobby() {
     };
 
     return (
-        <div>
-            <h1>Choose a Code Block</h1>
-            <ul>
-                {codeBlocks.map(block => (
-                    <li key={block.id} onClick={() => handleClick(block.id)}>
-                        {block.title}
-                    </li>
-                ))}
-            </ul>
-        </div>
+        <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default', padding: '20px' }}>
+            <StyledContainer maxWidth="sm">
+                <Typography variant="h4" gutterBottom>
+                    Choose a Code Block
+                </Typography>
+                <StyledPaper>
+                    <StyledList>
+                        {codeBlocks.map(block => (
+                            <StyledListItemButton key={block.id} onClick={() => handleClick(block.id)}>
+                                <ListItemText primary={block.title} />
+                            </StyledListItemButton>
+                        ))}
+                    </StyledList>
+                </StyledPaper>
+            </StyledContainer>
+        </Box>
     );
 }
 
