@@ -3,11 +3,13 @@ from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import logging
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'verysecret'
-app.config["MONGO_URI"] = "mongodb://localhost:27017/codeblocks"
+app.config["MONGO_URI"] = os.getenv('MONGO_URI', "mongodb://localhost:27017/codeblocks")
+#app.config["MONGO_URI"] = "mongodb://localhost:27017/codeblocks"
 
 
 # Enable Cross-Origin Resource Sharing (CORS)
@@ -150,4 +152,4 @@ def on_leave(data):
 
 if __name__ == '__main__':
     # Run the Flask app with SocketIO support
-    socketio.run(app, port=5001, debug=True)
+    socketio.run(app, host='0.0.0.0', port=8000, debug=True)
