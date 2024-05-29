@@ -30,10 +30,6 @@ code_templates = {
     '4': 'function renderComponent() {\n{{code}}\n}'
 }
 
-# Dictionaries to store user codes and maintain the order of students in each room
-user_codes = {room: {} for room in code_templates}
-student_order = {room: [] for room in code_templates}
-
 @app.route('/code_blocks')
 def get_code_blocks():
     """
