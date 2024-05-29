@@ -1,30 +1,39 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import useSocket from './hooks/useSocket';
-import hljs from 'highlight.js/lib/core';
-import javascript from 'highlight.js/lib/languages/javascript';
-import 'highlight.js/styles/default.css';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { Container, Typography, Button, Box, Paper } from '@mui/material';
+import './CodeEditor.css';
 
-hljs.registerLanguage('javascript', javascript);
+const testCases = {
+    '1': [
+        { input: 'mergeArray([1, 2], [3, 4])', expected: [1, 2, 3, 4] },
+        { input: 'mergeArray([], [1])', expected: [1] }
+    ],
+    '2': [
+        { input: 'findMax([1, 2, 3])', expected: 3 },
+        { input: 'findMax([-1, -2, -3])', expected: -1 }
+    ],
+    '3': [
+        { input: 'palindrome("racecar")', expected: true },
+        { input: 'palindrome("hello")', expected: false }
+    ],
+    '4': [
+        { input: 'addToNum(1, 2)', expected: 3 },
+        { input: 'addToNum(-1, -2)', expected: -3 }
+    ]
+};
 
 function CodeEditor() {
     const { id } = useParams();
     const { code, sendCode, role, allCodes } = useSocket(id);
     const [isEditable, setIsEditable] = useState(false);
     const [userCode, setUserCode] = useState('');
-    const codeRef = useRef(null);
-    const mentorRefs = useRef({});
-
-    const applyHighlight = useCallback(() => {
-        requestAnimationFrame(() => {
-            if (codeRef.current) {
-                hljs.highlightElement(codeRef.current);
-            }
-            Object.entries(mentorRefs.current).forEach(([studentName, element]) => {
-                hljs.highlightElement(element);
-            });
-        });
-    }, []);
+    const [output, setOutput] = useState('');
+    const [testResult, setTestResult] = useState('');
+    const [showSmiley, setShowSmiley] = useState(false);
 
     useEffect(() => {
         setIsEditable(role === 'Student');
@@ -34,44 +43,114 @@ function CodeEditor() {
         setUserCode(code);
     }, [code]);
 
-    useEffect(() => {
-        applyHighlight();
-    }, [code, allCodes, applyHighlight]);
-
-    const handleCodeChange = (e) => {
+    const handleCodeChange = (value) => {
         if (isEditable) {
-            const newCode = e.target.value;
-            setUserCode(newCode);
-            sendCode(newCode);
+            setUserCode(value);
+            sendCode(value);
+        }
+    };
+
+    const runCode = () => {
+        try {
+            let logs = [];
+            const log = console.log;
+            console.log = (...args) => {
+                logs.push(args.join(' '));
+            };
+
+            eval(userCode);
+
+            console.log = log;
+            setOutput(logs.join('\n'));
+        } catch (error) {
+            setOutput(`Error: ${error.message}`);
+        }
+    };
+
+    const runTests = () => {
+        const tests = testCases[id];
+        const wrappedCode = userCode;
+
+        const testResults = tests.map((test, index) => {
+            try {
+                const func = new Function(`${wrappedCode}; return ${test.input};`);
+                const result = func();
+                console.log('wrappedCode:', wrappedCode);
+                console.log('test.input:', test.input);
+                console.log('func:', func);
+                console.log(result);
+                console.log(test.expected);
+                console.log(JSON.stringify(result));
+                console.log(JSON.stringify(test.expected));
+
+                const isPassed = JSON.stringify(result) === JSON.stringify(test.expected);
+                return isPassed ? `Test ${index + 1} passed` : `Test ${index + 1} failed: expected ${JSON.stringify(test.expected)} but got ${JSON.stringify(result)}`;
+            } catch (error) {
+                return `Test ${index + 1} failed with error: ${error.message}`;
+            }
+        });
+
+        setTestResult(testResults.join('\n'));
+        // Check if all tests passed
+        if (testResults.every(result => result.includes('passed'))) {
+            setShowSmiley(true);
+            setTimeout(() => {
+                setShowSmiley(false);
+            }, 5000); // Hide after 5 seconds
         }
     };
 
     return (
-        <div>
-            <h1>Code Editor - {role || 'Loading...'}</h1>
-            {role === 'Mentor' ? (
-                Object.entries(allCodes).map(([studentName, studentCode], index) => (
-                    <div key={studentName}>
-                        <h2>{studentName} Code:</h2>
-                        <pre>
-                            <code ref={el => mentorRefs.current[studentName] = el} className="javascript" dangerouslySetInnerHTML={{ __html: hljs.highlight('javascript', studentCode).value }} />
-                        </pre>
-                    </div>
-                ))
-            ) : (
-                <div>
-                    <textarea
-                        value={userCode}
-                        onChange={handleCodeChange}
-                        style={{ width: '100%', minHeight: '200px' }}
-                        disabled={!isEditable}
-                    />
-                    <pre>
-                        <code ref={codeRef} className="javascript" dangerouslySetInnerHTML={{ __html: hljs.highlight('javascript', userCode).value }} />
-                    </pre>
-                </div>
-            )}
-        </div>
+        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h4" gutterBottom>
+                    Code Editor - {role || 'Loading...'}
+                </Typography>
+                {role === 'Mentor' ? (
+                    Object.entries(allCodes).map(([studentName, studentCode], index) => (
+                        <Box key={studentName} sx={{ mb: 2 }}>
+                            <Typography variant="h6">{studentName} Code:</Typography>
+                            <CodeMirror
+                                value={studentCode}
+                                height="200px"
+                                extensions={[javascript()]}
+                                theme={vscodeDark}
+                                readOnly={true}
+                            />
+                        </Box>
+                    ))
+                ) : (
+                    <Box>
+                        <CodeMirror
+                            value={userCode}
+                            height="200px"
+                            extensions={[javascript()]}
+                            theme={vscodeDark}
+                            onChange={handleCodeChange}
+                            readOnly={!isEditable}
+                        />
+                        <Box sx={{ mt: 2 }}>
+                            <Button onClick={runCode} variant="contained" color="primary" sx={{ mr: 1 }}>
+                                Run
+                            </Button>
+                            <Button onClick={runTests} variant="contained" color="secondary">
+                                Run Tests
+                            </Button>
+                        </Box>
+                        <Typography variant="h6" sx={{ mt: 2 }}>Output:</Typography>
+                        <pre className="output">{output}</pre>
+                        <Typography variant="h6" sx={{ mt: 2 }}>Test Results:</Typography>
+                        <pre className="output">{testResult}</pre>
+                        {showSmiley && (
+                            <div className="congrats">
+                                <span className="smiley">😊</span>
+                                <Typography variant="h5">You got it!</Typography>
+                            </div>
+                        )}
+                    </Box>
+                )}
+            </Paper>
+        </Container>
     );
 }
 
