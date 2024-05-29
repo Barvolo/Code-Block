@@ -24,10 +24,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Templates for different code tasks
 code_templates = {
-    '1': 'async function fetchData() {\n{{code}}\n}',
+    '1': 'function mergeArray(arr1, arr2) {\n{{code}}\n}',
     '2': 'function findMax(arr) {\n{{code}}\n}',
-    '3': 'function sortArray(arr) {\n{{code}}\n}',
-    '4': 'function renderComponent() {\n{{code}}\n}'
+    '3': 'function palindrome(str) {\n{{code}}\n}',
+    '4': 'function addToNum(num1, num2) {\n{{code}}\n}'
 }
 
 @app.route('/code_blocks')
