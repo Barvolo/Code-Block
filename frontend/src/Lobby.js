@@ -35,7 +35,7 @@ function Lobby() {
 
     useEffect(() => {
         console.log('Lobby component mounted');
-        fetch('http://localhost:5001/code_blocks')
+        fetch('http://localhost:8000/code_blocks')
             .then(response => response.json())
             .then(data => {
                 console.log('Fetched code blocks:', data);

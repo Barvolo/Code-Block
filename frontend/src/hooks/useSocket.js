@@ -10,7 +10,7 @@ const useSocket = (room) => {
     useEffect(() => {
         // Initialize socket connection
         if (!socket.current) {
-            socket.current = io('http://localhost:5001', {
+            socket.current = io('http://localhost:8000', {
                 withCredentials: true  // Ensure cookies are sent with the connection
             });
 
