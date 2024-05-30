@@ -11,7 +11,7 @@ const useSocket = (room) => {
         // Initialize socket connection
         //fetch(`${process.env.REACT_APP_API_URL}/code_blocks`)
         if (!socket.current) {
-            socket.current = io('`${process.env.REACT_APP_API_URL}', {
+            socket.current = io(`${process.env.REACT_APP_API_URL}`, {
                 withCredentials: true  // Ensure cookies are sent with the connection
             });
 
