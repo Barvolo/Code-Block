@@ -9,7 +9,6 @@ const useSocket = (room) => {
 
     useEffect(() => {
         // Initialize socket connection
-        //fetch(`${process.env.REACT_APP_API_URL}/code_blocks`)
         if (!socket.current) {
             socket.current = io(`${process.env.REACT_APP_API_URL}`, {
                 withCredentials: true  // Ensure cookies are sent with the connection
@@ -59,9 +58,9 @@ const useSocket = (room) => {
     }, [room]);
 
     // Function to emit code updates
-    const sendCode = (updatedCode) => {
+    const sendCode = async (updatedCode) => {
         if (role === 'Student') {
-            socket.current.emit('update_code', { room, user_id: localStorage.getItem('userId'), code: updatedCode });
+            await socket.current.emit('update_code', { room, user_id: localStorage.getItem('userId'), code: updatedCode });
         }
     };
 
