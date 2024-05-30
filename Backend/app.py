@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 import logging
 import os
 
@@ -10,13 +10,19 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'verysecret'
 mongo_uri = os.getenv('MONGO_URI', "mongodb://localhost:27017/codeblocks")
 
+# Set up logging for debugging
+logging.basicConfig(level=logging.DEBUG)
+
 # Initialize MongoDB client
 try:
     client = MongoClient(mongo_uri)
-    db = client.get_default_database()  # Get the default database
+    db = client.get_database()
     logging.info("Successfully connected to MongoDB Atlas")
-except Exception as e:
+except errors.ConnectionError as e:
     logging.error(f"Error connecting to MongoDB Atlas: {e}")
+    db = None
+except errors.OperationFailure as e:
+    logging.error(f"Authentication failure when connecting to MongoDB Atlas: {e}")
     db = None
 
 # Enable Cross-Origin Resource Sharing (CORS)
@@ -24,9 +30,6 @@ CORS(app)
 
 # Initialize Flask-SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-# Set up logging for debugging
-logging.basicConfig(level=logging.DEBUG)
 
 # Templates for different code tasks
 code_templates = {
@@ -58,7 +61,18 @@ def on_join(data):
 
     logging.debug(f"User {user_id} is trying to join room {room}")
 
-    room_data = db.rooms.find_one({'room': room})
+    if db is None:
+        logging.error("No database connection available")
+        emit('error', {'message': 'Database connection failed'})
+        return
+
+    try:
+        room_data = db.rooms.find_one({'room': room})
+    except errors.PyMongoError as e:
+        logging.error(f"Error finding room data: {e}")
+        emit('error', {'message': 'Internal server error'})
+        return
+
     if not room_data:
         # Initialize room data if not present
         room_data = {
@@ -86,7 +100,12 @@ def on_join(data):
         code_with_template = room_data['students'][user_id]
 
     # Update the room data in the database
-    db.rooms.update_one({'room': room}, {'$set': room_data}, upsert=True)
+    try:
+        db.rooms.update_one({'room': room}, {'$set': room_data}, upsert=True)
+    except errors.PyMongoError as e:
+        logging.error(f"Error updating room data: {e}")
+        emit('error', {'message': 'Internal server error'})
+        return
 
     # Notify the user of their role and provide the initial code
     emit('role_assigned', {'role': role, 'code': code_with_template}, room=request.sid)
@@ -112,13 +131,28 @@ def on_update_code(data):
 
     logging.debug(f"User {user_id} is updating code in room {room}")
 
-    room_data = db.rooms.find_one({'room': room})
+    if db is None:
+        logging.error("No database connection available")
+        emit('error', {'message': 'Database connection failed'})
+        return
+
+    try:
+        room_data = db.rooms.find_one({'room': room})
+    except errors.PyMongoError as e:
+        logging.error(f"Error finding room data: {e}")
+        emit('error', {'message': 'Internal server error'})
+        return
 
     if room_data:
         room_data['students'][user_id] = code
 
         # Update the room data in the database
-        db.rooms.update_one({'room': room}, {'$set': room_data})
+        try:
+            db.rooms.update_one({'room': room}, {'$set': room_data})
+        except errors.PyMongoError as e:
+            logging.error(f"Error updating room data: {e}")
+            emit('error', {'message': 'Internal server error'})
+            return
 
         # Determine the student's display name
         if user_id in room_data['order']:
@@ -138,7 +172,17 @@ def on_leave(data):
     user_id = data.get('user_id')
     logging.debug(f"User {user_id} is leaving room {room}")
 
-    room_data = db.rooms.find_one({'room': room})
+    if db is None:
+        logging.error("No database connection available")
+        emit('error', {'message': 'Database connection failed'})
+        return
+
+    try:
+        room_data = db.rooms.find_one({'room': room})
+    except errors.PyMongoError as e:
+        logging.error(f"Error finding room data: {e}")
+        emit('error', {'message': 'Internal server error'})
+        return
 
     if room_data:
         if user_id in room_data['students']:
@@ -147,7 +191,12 @@ def on_leave(data):
                 room_data['order'].remove(user_id)
 
         # Update the room data in the database
-        db.rooms.update_one({'room': room}, {'$set': room_data})
+        try:
+            db.rooms.update_one({'room': room}, {'$set': room_data})
+        except errors.PyMongoError as e:
+            logging.error(f"Error updating room data: {e}")
+            emit('error', {'message': 'Internal server error'})
+            return
 
     leave_room(room)
 
