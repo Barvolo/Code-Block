@@ -11,6 +11,8 @@ app.config['SECRET_KEY'] = 'verysecret'
 app.config["MONGO_URI"] = os.getenv('MONGO_URI', "mongodb://localhost:27017/codeblocks")
 #app.config["MONGO_URI"] = "mongodb://localhost:27017/codeblocks"
 
+mongo = PyMongo(app)
+
 
 # Enable Cross-Origin Resource Sharing (CORS)
 CORS(app)
