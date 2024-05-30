@@ -1,4 +1,3 @@
-import time
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
@@ -6,11 +5,12 @@ from pymongo import MongoClient, errors
 import logging
 import os
 from functools import wraps
+import time
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'verysecret'
-mongo_uri = os.getenv('MONGO_URI', "mongodb://localhost:27017/codeblocks")
+mongo_uri = os.getenv('MONGO_URI', "mongodb://localhost:27017/codeblocks?authSource=admin&connectTimeoutMS=30000&serverSelectionTimeoutMS=30000")
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
