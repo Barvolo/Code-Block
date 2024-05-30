@@ -25,7 +25,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.DEBUG)
 # Initialize PyMongo with SSL/TLS settings
 try:
-    mongo = PyMongo(app, tls=True, tlsAllowInvalidCertificates=True)
+    mongo = PyMongo(app)
     logging.info("Successfully connected to MongoDB Atlas")
 except Exception as e:
     logging.error(f"Error connecting to MongoDB Atlas: {e}")
