@@ -21,9 +21,8 @@ CORS(app)
 # Initialize Flask-SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Initialize PyMongo
-# Initialize PyMongo
-mongo = PyMongo(app)
+# Initialize PyMongo with SSL/TLS settings
+mongo = PyMongo(app, tls=True, tlsAllowInvalidCertificates=True)
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
