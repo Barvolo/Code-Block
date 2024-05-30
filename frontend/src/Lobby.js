@@ -32,10 +32,11 @@ const StyledListItemButton = styled(ListItemButton)({
 
 function Lobby() {
     const [codeBlocks, setCodeBlocks] = useState([]);
+    //https://code-block-3-331h.onrender.com/code_blocks
 
     useEffect(() => {
         console.log('Lobby component mounted');
-        fetch('http://localhost:8000/code_blocks')
+        fetch(`${process.env.REACT_APP_API_URL}/code_blocks`)
             .then(response => response.json())
             .then(data => {
                 console.log('Fetched code blocks:', data);
