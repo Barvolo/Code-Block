@@ -1,9 +1,11 @@
+import time
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
 from pymongo import MongoClient, errors
 import logging
 import os
+from functools import wraps
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -39,6 +41,22 @@ code_templates = {
     '4': 'function addToNum(num1, num2) {\n{{code}}\n}'
 }
 
+# Throttling decorator
+def throttle(seconds):
+    def decorator(f):
+        last_called = [0]
+
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            elapsed = time.time() - last_called[0]
+            if elapsed > seconds:
+                last_called[0] = time.time()
+                return f(*args, **kwargs)
+            else:
+                logging.warning(f"Throttled call to {f.__name__}, elapsed time: {elapsed:.2f}s")
+        return wrapped
+    return decorator
+
 @app.route('/code_blocks')
 def get_code_blocks():
     """
@@ -51,6 +69,7 @@ def get_code_blocks():
     ])
 
 @socketio.on('join')
+@throttle(1)  # Throttle this event to allow only one call per second
 def on_join(data):
     """
     Event handler for when a user joins a room.
@@ -61,13 +80,9 @@ def on_join(data):
 
     logging.debug(f"User {user_id} is trying to join room {room}")
 
-    if db is None:
-        logging.error("No database connection available")
-        emit('error', {'message': 'Database connection failed'})
-        return
-
     try:
         room_data = db.rooms.find_one({'room': room})
+        logging.debug(f"Room data found: {room_data}")
     except errors.PyMongoError as e:
         logging.error(f"Error finding room data: {e}")
         emit('error', {'message': 'Internal server error'})
@@ -102,6 +117,7 @@ def on_join(data):
     # Update the room data in the database
     try:
         db.rooms.update_one({'room': room}, {'$set': room_data}, upsert=True)
+        logging.debug(f"Room data updated: {room_data}")
     except errors.PyMongoError as e:
         logging.error(f"Error updating room data: {e}")
         emit('error', {'message': 'Internal server error'})
@@ -121,6 +137,7 @@ def on_join(data):
         emit('all_codes', all_student_codes, room=request.sid)
 
 @socketio.on('update_code')
+@throttle(0.5)  # Throttle this event to allow only one call every 0.5 seconds
 def on_update_code(data):
     """
     Event handler for when a user updates their code.
@@ -131,13 +148,9 @@ def on_update_code(data):
 
     logging.debug(f"User {user_id} is updating code in room {room}")
 
-    if db is None:
-        logging.error("No database connection available")
-        emit('error', {'message': 'Database connection failed'})
-        return
-
     try:
         room_data = db.rooms.find_one({'room': room})
+        logging.debug(f"Room data found: {room_data}")
     except errors.PyMongoError as e:
         logging.error(f"Error finding room data: {e}")
         emit('error', {'message': 'Internal server error'})
@@ -149,6 +162,7 @@ def on_update_code(data):
         # Update the room data in the database
         try:
             db.rooms.update_one({'room': room}, {'$set': room_data})
+            logging.debug(f"Room data updated: {room_data}")
         except errors.PyMongoError as e:
             logging.error(f"Error updating room data: {e}")
             emit('error', {'message': 'Internal server error'})
@@ -164,6 +178,7 @@ def on_update_code(data):
         emit('code_updated', {'user_id': user_id, 'student_name': student_name, 'code': code}, room=room)
 
 @socketio.on('leave')
+@throttle(1)  # Throttle this event to allow only one call per second
 def on_leave(data):
     """
     Event handler for when a user leaves a room.
@@ -172,13 +187,9 @@ def on_leave(data):
     user_id = data.get('user_id')
     logging.debug(f"User {user_id} is leaving room {room}")
 
-    if db is None:
-        logging.error("No database connection available")
-        emit('error', {'message': 'Database connection failed'})
-        return
-
     try:
         room_data = db.rooms.find_one({'room': room})
+        logging.debug(f"Room data found: {room_data}")
     except errors.PyMongoError as e:
         logging.error(f"Error finding room data: {e}")
         emit('error', {'message': 'Internal server error'})
@@ -193,6 +204,7 @@ def on_leave(data):
         # Update the room data in the database
         try:
             db.rooms.update_one({'room': room}, {'$set': room_data})
+            logging.debug(f"Room data updated: {room_data}")
         except errors.PyMongoError as e:
             logging.error(f"Error updating room data: {e}")
             emit('error', {'message': 'Internal server error'})
