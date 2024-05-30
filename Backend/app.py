@@ -21,11 +21,14 @@ CORS(app)
 # Initialize Flask-SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Initialize PyMongo with SSL/TLS settings
-mongo = PyMongo(app, tls=True, tlsAllowInvalidCertificates=True)
-
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
+# Initialize PyMongo with SSL/TLS settings
+try:
+    mongo = PyMongo(app, tls=True, tlsAllowInvalidCertificates=True)
+    logging.info("Successfully connected to MongoDB Atlas")
+except Exception as e:
+    logging.error(f"Error connecting to MongoDB Atlas: {e}")
 
 # Templates for different code tasks
 code_templates = {
