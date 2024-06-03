@@ -1,20 +1,21 @@
 
 # Code Block Editor
 
-A real-time code block editor that allows mentors to view and students to edit code blocks. Built with React for the frontend and Flask for the backend, with MongoDB as the database.
+A real-time code block editor that allows mentors to view and students to edit code blocks. Built with React for the frontend and Flask for the backend, with a local dictionary used for data storage.
 
 ## Features
 
 - Real-time code editing with syntax highlighting
 - Role-based access: Mentor and Student
-- Mentor can see all students' code
+- Mentor can see all students' code in real-time
 - Students can edit their code blocks
-- Test cases to validate student solutions
-- Persistent user sessions
+- Test cases to validate student solutions with visual feedback
+- Persistent user sessions using local storage
+- Dockerized setup for easy deployment
 
 ## Project Structure
 
-```plaintext
+```
 .
 ├── Backend
 │   ├── Dockerfile
@@ -46,69 +47,69 @@ A real-time code block editor that allows mentors to view and students to edit c
 
 ### Clone the Repository
 
-```bash
-git clone https://github.com/Barvolo/Code-Block.git
+```sh
+git clone https://github.com/barvolo/Code-Block.git
 cd Code-Block
 ```
 
 ### Backend Setup
 
-1. Navigate to the `Backend` directory.
+Navigate to the Backend directory.
 
-    ```bash
-    cd Backend
-    ```
+```sh
+cd Backend
+```
 
-2. Install dependencies.
+Install dependencies.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+```sh
+pip install -r requirements.txt
+```
 
-3. Run the Flask application.
+Run the Flask application.
 
-    ```bash
-    python app.py
-    ```
+```sh
+python app.py
+```
 
 ### Frontend Setup
 
-1. Navigate to the `frontend` directory.
+Navigate to the frontend directory.
 
-    ```bash
-    cd frontend
-    ```
+```sh
+cd frontend
+```
 
-2. Install dependencies.
+Install dependencies.
 
-    ```bash
-    npm install
-    ```
+```sh
+npm install
+```
 
-3. Start the React application.
+Start the React application.
 
-    ```bash
-    npm start
-    ```
+```sh
+npm start
+```
 
 ### Using Docker Compose
 
-1. Ensure you are in the root directory of the project.
+Ensure you are in the root directory of the project.
 
-2. Build and start the Docker containers.
+Build and start the Docker containers.
 
-    ```bash
-    docker-compose up --build
-    ```
+```sh
+docker-compose up --build
+```
 
-3. Access the frontend at `http://localhost:3000`.
+Access the frontend at [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
 
 Create a `.env` file in the root directory and add the following environment variables:
 
-```plaintext
-MONGO_URI=mongodb://mongo:27017/codeblocks?authSource=admin&connectTimeoutMS=30000&serverSelectionTimeoutMS=30000
+```
+NODE_OPTIONS=--openssl-legacy-provider
 REACT_APP_API_URL=http://localhost:8000
 ```
 
@@ -116,29 +117,32 @@ REACT_APP_API_URL=http://localhost:8000
 
 ### Backend (`app.py`)
 
-- Initializes Flask, Flask-SocketIO, and MongoDB connection
+- Initializes Flask, Flask-SocketIO, and sets up local dictionary for data storage
 - Defines API endpoints and socket event handlers
 - Handles user roles and code updates in real-time
+- Implements a throttle decorator to manage the rate of incoming requests
 
 ### Frontend (`src`)
 
-- `Lobby.js`: Lists available code blocks
-- `CodeEditor.js`: Code editor component with real-time updates
-- `useSocket.js`: Custom hook to manage socket connections
+- **App.js**: Main entry point of the React application
+- **CodeEditor.js**: Code editor component with real-time updates, run and test functionality, and visual feedback for test results
+- **Lobby.js**: Lists available code blocks and allows users to join a session
+- **useSocket.js**: Custom hook to manage socket connections and real-time data synchronization
+- **CodeEditor.css**: CSS file for styling the code editor
 
-### MongoDB Collections
+### Socket Events
 
-- `rooms`: Stores room data, including mentor and student codes
+- `join`: User joins a room and is assigned a role (Mentor or Student)
+- `update_code`: User updates their code block and changes are synchronized in real-time
+- `leave`: User leaves a room
 
 ## API Endpoints
 
 - `GET /code_blocks`: Retrieves a list of available code blocks
 
-## Socket Events
+## MongoDB Collections
 
-- `join`: User joins a room and is assigned a role
-- `update_code`: User updates their code block
-- `leave`: User leaves a room
+- **rooms**: Stores room data, including mentor and student codes
 
 ## Contributing
 
