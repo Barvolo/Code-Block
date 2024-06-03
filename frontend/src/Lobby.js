@@ -36,6 +36,7 @@ function Lobby() {
 
     useEffect(() => {
         console.log('Lobby component mounted');
+        // `${process.env.REACT_APP_API_URL}/code_blocks`
         fetch(`${process.env.REACT_APP_API_URL}/code_blocks`)
             .then(response => response.json())
             .then(data => {

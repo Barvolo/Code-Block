@@ -1,4 +1,9 @@
 /* src/CodeEditor.css */
+.CodeMirror-wrap pre {
+    word-break: break-word;
+}
+
+
 
 .output {
     margin-top: 20px;
