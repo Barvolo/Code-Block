@@ -2,8 +2,7 @@ from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
 import logging
-from functools import wraps
-import time
+import struct
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -30,22 +29,6 @@ code_templates = {
     '3': 'function palindrome(str) {\n{{code}}\n}',
     '4': 'function addToNum(num1, num2) {\n{{code}}\n}'
 }
-
-# Throttling decorator
-def throttle(seconds):
-    def decorator(f):
-        last_called = [0]
-
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            elapsed = time.time() - last_called[0]
-            if elapsed > seconds:
-                last_called[0] = time.time()
-                return f(*args, **kwargs)
-            else:
-                logging.warning(f"Throttled call to {f.__name__}, elapsed time: {elapsed:.2f}s")
-        return wrapped
-    return decorator
 
 @app.route('/code_blocks')
 def get_code_blocks():
@@ -92,7 +75,7 @@ def on_join(data):
     join_room(room)
 
     if role == 'Student' and not room_data['students'][user_id]:
-        code_with_template = code_templates[room].replace('{{code}}', '')
+        code_with_template = code_templates.get(room, '').replace('{{code}}', '')
         room_data['students'][user_id] = code_with_template
     else:
         code_with_template = room_data['students'][user_id]
@@ -120,10 +103,14 @@ def on_update_code(data):
     Event handler for when a user updates their code.
     """
     room = data['room']
-    code = data['code']
+    packet = data['packet']
     user_id = data.get('user_id')
 
     logging.debug(f"User {user_id} is updating code in room {room}")
+
+    # Read the packet size
+    size = struct.unpack('>H', packet[:2])[0]  # Big Endian
+    code = packet[2:2+size].decode('utf-8')
 
     room_data = local_db['rooms'].get(room, None)
 
