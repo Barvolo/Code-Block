@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
+from pymongo import MongoClient
+import redis
 import logging
 import struct
 
@@ -11,10 +13,12 @@ app.config['SECRET_KEY'] = 'verysecret'
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
 
-# Initialize local dictionary for storing data
-local_db = {
-    'rooms': {}
-}
+# Initialize MongoDB
+mongo_client = MongoClient('mongodb://localhost:27017/')
+db = mongo_client['code_platform']  
+
+# Initialize Redis
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # Enable Cross-Origin Resource Sharing (CORS)
 CORS(app)
@@ -52,7 +56,8 @@ def on_join(data):
 
     logging.debug(f"User {user_id} is trying to join room {room}")
 
-    room_data = local_db['rooms'].get(room, None)
+    # Fetch room data from Redis
+    room_data = redis_client.hgetall(f"room:{room}")
 
     if not room_data:
         # Initialize room data if not present
@@ -62,6 +67,9 @@ def on_join(data):
             'students': {},
             'order': []
         }
+    else:
+        room_data['students'] = eval(room_data.get('students', '{}'))
+        room_data['order'] = eval(room_data.get('order', '[]'))
 
     # Assign roles and initialize user code if necessary
     if user_id not in room_data['students']:
@@ -80,9 +88,12 @@ def on_join(data):
     else:
         code_with_template = room_data['students'][user_id]
 
-    # Update the room data in the local dictionary
-    local_db['rooms'][room] = room_data
-    logging.debug(f"Room data updated: {room_data}")
+    # Update the room data in Redis
+    redis_client.hmset(f"room:{room}", {
+        'mentor': room_data['mentor'],
+        'students': str(room_data['students']),
+        'order': str(room_data['order'])
+    })
 
     # Notify the user of their role and provide the initial code
     emit('role_assigned', {'role': role, 'code': code_with_template}, room=request.sid)
@@ -112,11 +123,19 @@ def on_update_code(data):
     size = struct.unpack('>H', packet[:2])[0]  # Big Endian
     code = packet[2:2+size].decode('utf-8')
 
-    room_data = local_db['rooms'].get(room, None)
-
+    # Fetch room data from Redis
+    room_data = redis_client.hgetall(f"room:{room}")
     if room_data:
+        room_data['students'] = eval(room_data.get('students', '{}'))
+        room_data['order'] = eval(room_data.get('order', '[]'))
+
         room_data['students'][user_id] = code
-        local_db['rooms'][room] = room_data
+
+        # Update the room data in Redis
+        redis_client.hmset(f"room:{room}", {
+            'students': str(room_data['students']),
+            'order': str(room_data['order'])
+        })
         logging.debug(f"Room data updated: {room_data}")
 
         # Determine the student's display name
@@ -128,6 +147,9 @@ def on_update_code(data):
         # Notify all users in the room of the code update
         emit('code_updated', {'user_id': user_id, 'student_name': student_name, 'code': code}, room=room)
 
+    # Save the code update to MongoDB for persistence
+    db.code_updates.update_one({'room': room, 'user_id': user_id}, {'$set': {'code': code}}, upsert=True)
+
 @socketio.on('leave')
 def on_leave(data):
     """
@@ -137,15 +159,22 @@ def on_leave(data):
     user_id = data.get('user_id')
     logging.debug(f"User {user_id} is leaving room {room}")
 
-    room_data = local_db['rooms'].get(room, None)
-
+    # Fetch room data from Redis
+    room_data = redis_client.hgetall(f"room:{room}")
     if room_data:
+        room_data['students'] = eval(room_data.get('students', '{}'))
+        room_data['order'] = eval(room_data.get('order', '[]'))
+
         if user_id in room_data['students']:
             del room_data['students'][user_id]
             if user_id in room_data['order']:
                 room_data['order'].remove(user_id)
 
-        local_db['rooms'][room] = room_data
+        # Update the room data in Redis
+        redis_client.hmset(f"room:{room}", {
+            'students': str(room_data['students']),
+            'order': str(room_data['order'])
+        })
         logging.debug(f"Room data updated: {room_data}")
 
     leave_room(room)
