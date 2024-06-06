@@ -1,7 +1,7 @@
 
 # Code Block Editor
 
-A real-time code block editor that allows mentors to view and students to edit code blocks. Built with React for the frontend and Flask for the backend, with a local dictionary used for data storage.
+A real-time code block editor that allows mentors to view and students to edit code blocks. Built with React for the frontend and Flask for the backend, with MongoDB and Redis used for data storage.
 
 ## Features
 
@@ -21,6 +21,7 @@ A real-time code block editor that allows mentors to view and students to edit c
 │   ├── Dockerfile
 │   ├── app.py
 │   ├── requirements.txt
+│   ├── entrypoint.sh
 │   └── ...
 ├── frontend
 │   ├── Dockerfile
@@ -111,13 +112,14 @@ Create a `.env` file in the root directory and add the following environment var
 ```
 NODE_OPTIONS=--openssl-legacy-provider
 REACT_APP_API_URL=http://localhost:8000
+MONGODB_URI=your_mongodb_connection_string_here
 ```
 
 ## Code Structure
 
 ### Backend (`app.py`)
 
-- Initializes Flask, Flask-SocketIO, and sets up local dictionary for data storage
+- Initializes Flask, Flask-SocketIO, and sets up MongoDB and Redis for data storage
 - Defines API endpoints and socket event handlers
 - Handles user roles and code updates in real-time
 - Implements a throttle decorator to manage the rate of incoming requests
