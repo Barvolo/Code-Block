@@ -5,6 +5,7 @@ from pymongo import MongoClient
 import redis
 import logging
 import struct
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -14,7 +15,10 @@ app.config['SECRET_KEY'] = 'verysecret'
 logging.basicConfig(level=logging.DEBUG)
 
 # Initialize MongoDB
-mongo_client = MongoClient('mongodb://localhost:27017/')
+mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+mongo_client = MongoClient(mongo_uri)
+
+#mongo_client = MongoClient('mongodb://localhost:27017/')
 db = mongo_client['code_platform']  
 
 # Initialize Redis
